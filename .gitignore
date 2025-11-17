@@ -1,6 +1,3 @@
-AI25-Databehandling/
-Apptest/
-Labb/
-gitbub.test/
 venv/
-
+__pycache__/
+.ipynb_checkpoints/
