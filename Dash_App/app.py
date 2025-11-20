@@ -4,10 +4,30 @@ import plotly.express as px
 import pandas as pd
 import hashlib
 
-#____________________ DATA ______________________
-SPORTS = ["Cycling","Equestrianism","Fencing", "Swimming"]
-data = "athlete_events.csv"
+#____________________ VAR & CONST ____________________
 
+data = "athlete_events.csv"
+SPORTS = ["Cycling","Equestrianism","Fencing", "Swimming"]
+SPORT_OPTIONS = {
+    "Cycling":[
+        {"label":"Ålder", "value":"age"},
+        {"label":"Medaljer", "value": "medals"},
+    ],
+    "Fencing":[
+        {"label":"Ålder", "value":"age"},
+        {"label":"Medaljer", "value": "medals"},
+    ],
+    "Equestrianism":[
+        {"label":"Ålder", "value":"age"},
+        {"label":"Medaljer", "value": "medals"},
+    ],
+    "Swimming":[
+        {"label":"Ålder", "value":"age"},
+        {"label":"Medaljer", "value": "medals"},
+    ]
+}
+
+#____________________ DATA ______________________
 df = pd.read_csv(data)
 
 df = df.fillna({
@@ -39,14 +59,24 @@ df.insert(
 ))
 df_anon = df.drop(["Name"], axis=1)
 
-#____________________ Sport _____________________________
-       
-        #______________________Swimming_________________________
+#____________________ Sports Dataframes _____________________________
+        #__________________ All Sports ___________________
+#DF with all ages/sports
+ita_all_age = italydf_anon[italydf_anon["Age"] > 0][["Sport", "Age"]]
+#Unique sports - Age
+unique_sports = ita_all_age["Sport"].unique()
+        #______________________Cycling_________________________
+
+        #____________________Equestrianism_____________________
+
+        #______________________Fencing_________________________
+
+        #______________________Swimming________________________
 
 #Först extraherar vi data för simning
 ita_swim = italydf_anon[italydf_anon["Sport"]=="Swimming"]
 
-#och börjar kolla på medaljer och att filtrera ut dubletter 
+#Simning medaljer utan dubletter
 ita_swim_medals = (
     ita_swim.dropna(subset=["Medal"])
     .drop_duplicates(subset=["Year","Medal","Event","ID"])
@@ -57,21 +87,14 @@ ita_swim_medals_year = ita_swim_medals.groupby("Year")["Medal"].count().reset_in
 #Medaljer typ / År
 ita_swim_medal_type = ita_swim_medals.groupby(["Year","Medal"]).size().reset_index(name="Count")
 
-#DF with all ages/sports
-ita_all_age = italydf_anon[italydf_anon["Age"] > 0][["Sport", "Age"]]
 
-#Unique sports
+#____________________ APP DEC __________________________
 
-unique_sports = ita_all_age["Sport"].unique()
+app = Dash(__name__, external_stylesheets=[dbc.themes.COSMO], suppress_callback_exceptions= True )
 
-
-
-
-app = Dash(__name__, external_stylesheets=[dbc.themes.COSMO] )
 #____________________ Grafer ____________________________
 #   ________________ Swim Medals/Year ________________
 
-#Nu kan vi skapa vår första plot med plotly
 fig_swim_med_year = px.line(
     ita_swim_medals_year,
     x= "Year",
@@ -124,8 +147,45 @@ fig_age_all_sports.update_layout(
     yaxis_title="Age",
     showlegend=False  # legend not needed, too many categories
 )
+#____________________ GRAPH CALLER __________________
+#This function will show the right graphs based on sport/category chosen 
+def get_sport_graphs(sport, category):
+    if sport == "Swimming":
+        if category == "age":
+            return[
+                dcc.Graph(figure=fig_age_all_sports)
+            ]
+        elif category == "medals":
+            return[
+                dcc.Graph(figure=fig_swim_med_year),
+                dcc.Graph(figure=fig_swim_med_type)
+            ]
+    elif sport == "Cycling":
+        if category == "age":
+            return[
+            ]
+        elif category == "medals":
+            return[
+            ]
+    elif sport == "Equestrianism":
+        if category == "age":
+            return[
+            ]
+        elif category == "medals":
+            return[
+            ]
+    elif sport == "Fencing":
+        if category == "age":
+            return[
+            ]
+        elif category == "medals":
+            return[
+            ]
+            
+    return html.Div("No available Data yet")
 
 #____________________ PAGES ________________________
+#Here we have the general structure of the pages
 def home_page():
     return html.Div([
         html.H1("Italy Olympic Dashboard — Overview"),
@@ -134,48 +194,31 @@ def home_page():
     ])
 
 def sport_page(sport):
-    if sport == "Cycling":
-        return html.Div([
-            html.H1("Cycling OS Analysis"),
-        ])
+    return html.Div([
+        html.H1(f"{sport} OS Analysis",style={"text-align":"center"}),
 
-    elif sport == "Equestrianism":
-        return html.Div([
-            html.H1("Equestrianism OS Analysis"),
-        ])
-    
-    elif sport == "Fencing":
-        return html.Div([
-            html.H1("Fencing OS Analysis"),
-        ])
-    
-    elif sport == "Swimming":
-        return html.Div([
-            html.H1("Swimming OS Analysis", style={"text-align":"center"}),
+        #dynamisk Dropdown
+        html.Div([
+            dcc.Dropdown(
+                id="dropdown-sport-option",
+                options=SPORT_OPTIONS[sport],
+                placeholder="Choose category...",
+                clearable=False
+            )
+        ], style={"width": "50%", "margin": "20px auto"}),
 
-            html.Div([
-                dcc.Graph(figure=fig_swim_med_year),
-            ], style={"margin-top": "20px"}),
+        html.Div(id="sports-graphs-area", style={"margin-top":"30px"})
 
-            html.Div([
-                dcc.Graph(figure=fig_swim_med_type),
-            ], style={"margin-top": "20px"}),
-            
-            html.Div([
-                dcc.Graph(figure=fig_age_all_sports),
-            ], style={"margin-top": "20px"}),
+    ], style={"padding":"20px","margin-right":"10%"})
+       
 
-
-        ], style={"padding":"20px", "margin-right":"10%"})
-
-
-    else: return home_page()
     
 
 #___________________ APP ___________________
 
 app.layout = html.Div([
     
+    #Sidebar structure
     html.Div(
         id = "sidebar",
         children=[
@@ -214,6 +257,7 @@ app.layout = html.Div([
             "right": 0
         }
     ),
+    dcc.Store(id="current-sport"),
 
 #_____________Main content_______________
     html.Div(
@@ -254,6 +298,35 @@ def display_page(*clicks):
     sport = button_id.replace("btn-","").capitalize()
 
     return sport_page(sport)
+
+@app.callback(
+    Output("current-sport","data"),
+    [Input("btn_home","n_clicks")]+
+    [Input(f"btn-{sport.lower()}", "n_clicks")for sport in SPORTS]
+)
+def store_sport(*clicks):
+    ctx = callback_context
+    if not ctx.triggered:
+        return None
+    
+    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if button_id == "btn_home":
+        return None
+    
+    sport = button_id.replace("btn-","").capitalize()
+    return sport
+
+#This makes sure the right graphs are called on the page when a category is selected
+@app.callback(
+    Output("sports-graphs-area","children"),
+    Input("dropdown-sport-option", "value"),
+    State("current-sport","data")
+)
+def update_graphs(category,sport):
+    if sport is None or category is None:
+        return []
+    return get_sport_graphs(sport, category)
 
 if __name__ == "__main__":
     app.run(debug = True)
