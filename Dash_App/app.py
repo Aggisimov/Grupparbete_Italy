@@ -13,6 +13,7 @@ SPORT_OPTIONS = {
     "Cycling":[
         {"label":"Ålder", "value":"age"},
         {"label":"Medaljer", "value": "medals"},
+        {"label": "General", "value": "general"}
     ],
     "Fencing":[
         {"label":"Ålder", "value":"age"},
@@ -21,6 +22,8 @@ SPORT_OPTIONS = {
     "Equestrianism":[
         {"label":"Ålder", "value":"age"},
         {"label":"Medaljer", "value": "medals"},
+        {"label":"Kön", "value":"gender"},
+        {"label":"Aktiva År", "value": "aktiva"}
     ],
     "Swimming":[
         {"label":"Ålder", "value":"age"},
@@ -30,7 +33,8 @@ SPORT_OPTIONS = {
 #_________________ TEXT BLOCKS __________________
 HOME_TEXT = {
     "medals_won": "Here we can see the medals won by Italy on Summer and Winter OS",
-    "medals_distribution": "The total medals won by the top 20 countries. Italy is the 6th top medalist."
+    "medals_distribution": "The total medals won by the top 20 countries. Italy is the 6th top medalist.",
+    "medals_sport" : "Top 10 sports by number of medals won"
 }
 SWIMMING_TEXT = {
     "age_main": "This graph shows the range of ages of Italian swimmers",
@@ -40,6 +44,9 @@ SWIMMING_TEXT = {
     "medals_types": "This graph shows what medals were won each year"
 }
 
+CYCLING_TEXT = {
+    "medals_age": f"How does aging affect likelihood to score a medal in Olympic cycling? While entering their 30s (and even 40's) may not end the chances of an Olympic medal for athletes of endurance sports, likelihood drops sharply after passing their mid-20s.",
+    }
 #____________________ DATA ______________________
 df = pd.read_csv(data)
 
@@ -95,6 +102,14 @@ ita_medals_unique = (
     .drop_duplicates(subset=["Games", "Event", "Medal"])
 )
 
+#Italy medals by sport
+medals_by_sport_all = (
+    ita_medals_unique
+    .groupby("Sport")["Medal"]
+    .count()
+    .sort_values(ascending=False)
+)
+
 #Italy Summer Medals
 ita_summer_unique = (
     italydf_anon[
@@ -135,9 +150,160 @@ ita_medals_combined = pd.concat([summer, winter], ignore_index=True)
 
         #______________________Cycling_________________________
 
+cycling_df = df_anon[df_anon["Sport"] == "Cycling"].copy()
+
+cycling_df["Event"] = cycling_df["Event"].str.replace(
+    "Cycling Women's Team Pursuit",
+    "Cycling Women's Team Pursuit, 4,000 metres",
+)
+
+def cycling_base_event(cycling_event):
+    cycling_event = cycling_event.replace("Cycling ", "")
+    cycling_event = cycling_event.replace("Men's ", "")
+    cycling_event = cycling_event.replace("Women's ", "")
+    return cycling_event
+
+cycling_df.loc[:, "Base Event"] = cycling_df["Event"].apply(cycling_base_event)
+
+unique_cycling_events = cycling_df["Base Event"].unique()
+
+men_event_amount = (cycling_df[cycling_df["Sex"] == "M"].groupby("Base Event")["Year"].nunique())
+sorted_base_events = sorted(unique_cycling_events, key=lambda x: men_event_amount.get(x, 0), reverse=True)
+
+cycling_df["Grouped Event"] = cycling_df.apply(lambda cycling_heatmap_row: f"{"Men's" if cycling_heatmap_row["Sex"] == "M" else "Women's"} {cycling_heatmap_row["Base Event"]}", axis=1)
+
+cycling_heatmap_data = cycling_df.groupby(["Grouped Event", "Year"])["ID"].count().reset_index()
+cycling_heatmap_data["Base Event"] = cycling_heatmap_data["Grouped Event"].apply(lambda x: x.split(" ", 1)[1])
+
+cycling_heatmap_data["Base Event Order"] = cycling_heatmap_data["Base Event"].apply(lambda x: sorted_base_events.index(x))
+cycling_heatmap_data["Gender"] = cycling_heatmap_data["Grouped Event"].apply(lambda x: x.split(" ", 1)[0])
+cycling_heatmap_data = cycling_heatmap_data.sort_values(by=["Base Event Order", "Gender"])
+
+cycling_heatmap_data = cycling_heatmap_data.drop(columns=["Base Event", "Base Event Order", "Gender"])
+cycling_heatmap_data = cycling_heatmap_data.iloc[::-1]
+
+cycling_color_scale = [[0.0, "white"], [0.001, "salmon"], [1.0, "blue"]]
+
+#____cycling Medal by country______
+national_cycling_df = cycling_df[["NOC", "Year", "Event", "Medal"]].drop_duplicates()
+cycling_medal_distribution = national_cycling_df.groupby("NOC")["Medal"].value_counts().unstack().fillna(0)
+cycling_medal_distribution_NOC = cycling_medal_distribution.assign(Total=cycling_medal_distribution.sum(axis=1)).sort_values(by="Total", ascending=False).iloc[:15]
+
+#________ Cycling medals by age _______________
+
+
+cycling_medal_distribution = (
+    cycling_df.groupby("Age")["Medal"]
+    .value_counts()
+    .unstack(fill_value=0)
+    .reset_index()
+)
+
+cycling_medal_distribution_melted = cycling_medal_distribution.melt(
+    id_vars="Age",
+    value_vars=["Bronze", "Silver", "Gold"],
+    var_name="Medal",
+    value_name="Count"
+)
+
+#_______Cycling medal years ______________
+cycling_medal_counts = (
+    cycling_df.groupby(["Year", "NOC"])["Medal"].count().unstack(fill_value=0)
+)
+
+cycling_medal_proportion_plot = (
+    cycling_medal_counts
+    .assign(not_italy=lambda df: df.drop(columns=["ITA"]).sum(axis=1))
+    [["not_italy", "ITA"]]
+    .reset_index()
+    .melt(id_vars="Year", var_name="Group", value_name="Medals")
+)
+
+
         #____________________Equestrianism_____________________
 
+df_equestrianism = df[df['Sport'] == 'Equestrianism']
+
+ita_df_equestrianism = italydf_anon[italydf_anon['Sport'] == 'Equestrianism']
+
+medals_per_country_eq = (df_equestrianism[df_equestrianism['Medal'].notnull()]['NOC'].value_counts().reset_index())
+medals_per_country_eq.columns = ['NOC', 'Count']
+
+equestrianism = italydf_anon[italydf_anon["Sport"] == "Equestrianism"].copy()
+equestrianism["Group"] = "Equestrianism"
+
+other_sports_eq = italydf_anon[italydf_anon["Sport"] != "Equestrianism"].copy()
+other_sports_eq["Group"] = "Other sports"
+
+age_compare_eq = pd.concat([equestrianism, other_sports_eq], ignore_index=True)
+
+mean_age_eq = (
+        age_compare_eq.groupby("Group")["Age"]
+        .mean()
+        .reset_index()
+        .round(1)
+    )
+
+#EQ activity years
+age_span_per_person = ita_df_equestrianism.groupby('Name_HASH').agg(
+    MinAge=('Age', 'min'),
+    MaxAge=('Age', 'max'),
+    ActiveYears=('Year', lambda x: x.nunique())
+).reset_index()
+
+longest_active = age_span_per_person['ActiveYears'].max()
+
+bins = list(range(0, int(longest_active + 5), 1))
+
+# EQ Gender distribution
+counts_eq = ita_df_equestrianism.groupby(['Year','Sex']).size().unstack().fillna(0)
+df_counts = counts_eq.reset_index().melt(id_vars='Year', value_name='Count', var_name='Sex')
+
+#EQ Medals / type
+ita_eq_medals = ita_df_equestrianism.dropna(subset=['Medal']).drop_duplicates(subset=['Year', 'Medal', 'Event', 'ID'])
+eq_medals_type= ita_eq_medals.groupby(['Year', 'Medal']).size().reset_index(name="Count")
+
         #______________________Fencing_________________________
+
+fencing = italydf_anon[italydf_anon["Sport"] == "Fencing"].copy()
+
+fencing_unique_medals = (
+    fencing[fencing["Medal"] != "None"]
+    .drop_duplicates(subset=["Games", "Event", "Medal"])
+)
+# Medals by type -Fen
+
+medals_by_type_fen = (
+    fencing_unique_medals
+    .pivot_table(
+        index="Year",
+        columns="Medal",
+        values="ID",      # bara för count
+        aggfunc="count",
+        fill_value=0
+    )
+    .reset_index()
+)
+medals_type_cols = [c for c in medals_by_type_fen.columns if c in ["Gold", "Silver", "Bronze"]]
+medals_by_type_fen["Total"] = medals_by_type_fen[medals_type_cols].sum(axis=1)
+
+#Fenc_Age_Distr
+fencing = italydf_anon[italydf_anon["Sport"] == "Fencing"].copy()
+fencing["Group"] = "Fencing"
+
+other_sports = italydf_anon[italydf_anon["Sport"] != "Fencing"].copy()
+other_sports["Group"] = "Other sports"
+
+age_compare = pd.concat([fencing, other_sports], ignore_index=True)
+
+#Men age _Fen
+mean_age = (
+    age_compare.groupby("Group")["Age"]
+    .mean()
+    .reset_index()
+    .round(1)
+)
+
 
         #______________________Swimming________________________
 
@@ -193,21 +359,226 @@ fig_ita_medal_year.update_layout(
     yaxis_title="Antal medaljer"
 )
 
+#__________________ Italy Medals by Sport _____________
+fig_medal_sport = px.bar(
+    medals_by_sport_all.head(10),
+    title="Top 10 sporter där Italien tagit flest medaljer",
+    labels={"index": "Sport", "value": "Antal medaljer"}
+)
+fig_medal_sport.update_layout(
+       showlegend = False
+)
+# __________________ FENCING _______________________
+#    __________________Fencing Medals by year ______________
+fig_fenc_medal = px.bar(
+    medals_by_type_fen,
+    x="Year",
+    y="Total",
+    title="Italy Fencing - Total Medals per Year",
+    labels={"Total": "Total Medals"}
+)
+
+#_________________ Fencing Medals by Type ________
+fig_medal_by_type_gsb = px.bar(
+    medals_by_type_fen,
+    x="Year",
+    y=["Gold", "Silver", "Bronze"],
+    title="Italy Fencing - Medals per Year",
+    labels={"value": "Number of Medals", "variable": "Medal Type"},
+    color_discrete_map={
+        "Gold": "#F6D411",
+        "Silver": "#D7D4D4",
+        "Bronze": "#CD7532"
+    }
+)
+fig_medal_by_type_gsb.update_layout(barmode="stack")
+
+#________________Fencing Age Distribution _________________
+
+fig_fen_age_distr = px.histogram(
+    age_compare,
+    x="Age",
+    nbins=30,
+    histnorm="percent",
+    facet_row="Group",
+    title="Age Distribution - Fencing vs Other Italian Sports",
+    labels={"Age": "Age", "Group": "Group"}
+)
+fig_fen_age_distr.update_layout(
+    height=700,
+    margin=dict(t=80, b=40),
+    font=dict(size=14),
+)
+fig_fen_age_distr.update_xaxes(range=[10, 50])     # adjust if you have older athletes
+fig_fen_age_distr.update_yaxes(matches=None)
+
+#__________________CYCLING ________________________
+#Heatmap
+cycling_heatmap_fig = px.density_heatmap(
+    cycling_heatmap_data,
+    x="Year",
+    y="Grouped Event",
+    z="ID",
+    nbinsx=int((cycling_df["Year"].max()-cycling_df["Year"].min()+4)/4),
+    color_continuous_scale=cycling_color_scale,
+    title="Cycling through the Olympics",
+    labels={"ID": "Number of Participants"},
+    height=800,
+    text_auto=True,
+)
+
+cycling_heatmap_end_year = cycling_df["Year"].max()
+cycling_heatmap_tick_vals = list(range(1896, cycling_heatmap_end_year + 1, 8))
+
+
+cycling_heatmap_fig.update_layout(
+    xaxis_title="Year",
+    yaxis_title="Event",
+    coloraxis_colorbar={"title": "Participants"},
+    xaxis=dict(tickmode="array", tickvals=cycling_heatmap_tick_vals)
+    
+)
+
+cycling_heatmap_fig.add_annotation(
+    text="Amount of cycling event participants by year and event", 
+    xref="paper", yref="paper", x=0.5, y=1.05, 
+    showarrow=False, font=dict(size=14))
+
+#Cycling medals by country______
+
+national_cycling_fig = px.bar(
+    cycling_medal_distribution_NOC.reset_index(),
+    x="NOC",
+    y=["Bronze", "Silver", "Gold"],
+    title="Cycling medal distribution by country",
+    labels={"value": "Number of medals", "variable": "Medal Type", "NOC": "Country"},
+    color_discrete_map={"Bronze": "saddlebrown", "Silver": "silver", "Gold": "gold"},
+    barmode="stack"
+)
+
+national_cycling_fig.update_layout(xaxis_tickangle=-45)
+
+#Cycling medals by age _____________
+
+cycling_medal_distribution_fig = px.bar(
+    cycling_medal_distribution_melted,
+    x="Age",
+    y="Count",
+    color="Medal",
+    title="Cycling medal distribution by athlete age",
+    labels={"Age": "Athlete age", "Count": "Number of medals"},
+    color_discrete_map={"Bronze": "saddlebrown", "Silver": "silver", "Gold": "gold"},
+    barmode="stack"
+)
+#Cycling medals over years ___________________
+
+cycling_proportion_medal_fig = px.bar(
+    cycling_medal_proportion_plot,
+    x="Year",
+    y="Medals",
+    color="Group",
+    title="Italy's historical medal proportion in Olympic cycling",
+    labels={"Medals": "Number of Medals", "Year": "Year"},
+    color_discrete_map={"not_italy": "blue", "ITA": "salmon"},
+    barmode="stack"
+)
+
+cycling_proportion_medal_fig.update_layout(
+    legend_title_text='Medals by'
+).for_each_trace(
+    lambda trace: trace.update(name="Not Italy")
+    if trace.name == "not_italy" else trace.update(name="Italy")
+)
+
+#_____________ EQUESTRIANISM __________________
+#Medal distribution_country
+fig_eq_NOC_medal_distribution = px.bar(
+    medals_per_country_eq,
+    x='NOC',
+    y='Count',
+    title="Equestrianism medals per country",
+    labels={'NOC': 'Country', 'Count': 'Number of Medals'}
+)
+
+#Age Distribution
+fig_age_distribution_eq_vs_other = px.histogram(
+        age_compare_eq,
+        x="Age",
+        nbins=30,
+        histnorm="percent",
+        facet_row="Group",
+        title="Age Distribution - Equestrianism vs Other Italian Sports",
+        labels={"Age": "Age", "Group": "Group"}
+    )
+fig_age_distribution_eq_vs_other.update_layout(
+        height=700,
+        margin=dict(t=80, b=40),
+        font=dict(size=14),
+    )
+
+    # Adjust axes to remove the messy right-end overflow
+fig_age_distribution_eq_vs_other.update_xaxes(range=[10, 65])
+fig_age_distribution_eq_vs_other.update_yaxes(matches=None)
+
+
+#Activity Years
+fig_eq_activity_years = px.histogram(
+        age_span_per_person,
+        x='ActiveYears',
+        nbins=len(bins),
+        title="Amount of Active Years for Italian Athletes",
+        labels={"ActiveYears": "Number of Games", "count": "Numbr of Athletes"}
+    )
+
+fig_eq_activity_years.update_traces(marker_line_width=1, marker_line_color="black")
+fig_eq_activity_years.update_layout(bargap=0.05)
+
+#Gender Distribution EQ
+fig_eq_gender_distribution = px.bar(
+    df_counts,
+    x='Year',
+    y='Count',
+    color='Sex',
+    barmode='group',
+    title="Gender distribution of Italian equestrianism athletes over the years"
+)
+
+#Medals by type / year
+
+fig_eq_medals_type = px.bar(
+    eq_medals_type,
+    x = 'Year',
+    y = 'Count',
+    color = 'Medal',
+    color_discrete_map={
+        "Gold": "#C6A907",
+        "Silver": "#C0C0C0",
+        "Bronze": "#CD7F32"},
+    title= "Medal Distribution for Italy per year",
+    barmode='group'
+)
+
+fig_eq_medals_type.update_layout(
+        xaxis_title = "Year",
+        yaxis_title = "Number of Medals"
+)
+# ______________SWIMMING _______________________
 #   ________________ Swim Medals/Year ________________
 
-fig_swim_med_year = px.line(
+fig_swim_med_year = px.bar(
     ita_swim_medals_year,
     x= "Year",
     y= "Medal",
-    title="Antal Medaljer för Italien per OS",
-    markers = True,
+    title="Antal Medaljer för Italien per OS"
     
     )
 
 fig_swim_med_year.update_layout(
     xaxis_title = "OS År",
     yaxis_title = "Antal Medaljer"
+
 )
+
 #   ____________ Swim Medal Types/Year _______________
 fig_swim_med_type = px.bar(
     ita_swim_medal_type,
@@ -268,23 +639,51 @@ def get_sport_graphs(sport, category):
     elif sport == "Cycling":
         if category == "age":
             return[
+                dcc.Graph(figure=cycling_medal_distribution_fig),
+                html.P(CYCLING_TEXT["medals_age"],className="graph-text")
             ]
         elif category == "medals":
             return[
+                dcc.Graph(figure=national_cycling_fig),
+
+                dcc.Graph(figure=cycling_proportion_medal_fig)
+
+            ]
+        elif category == "general":
+            return[
+                dcc.Graph(figure=cycling_heatmap_fig)
             ]
     elif sport == "Equestrianism":
         if category == "age":
             return[
+                dcc.Graph(figure=fig_age_distribution_eq_vs_other)
             ]
         elif category == "medals":
             return[
+                dcc.Graph(figure=fig_eq_NOC_medal_distribution),
+
+                dcc.Graph(figure=fig_eq_medals_type)
+            ]
+        elif category == "gender":
+            return[
+                dcc.Graph(figure=fig_eq_gender_distribution)
+            ]
+        elif category == "aktiva":
+            return[
+                dcc.Graph(figure=fig_eq_activity_years)
+
             ]
     elif sport == "Fencing":
         if category == "age":
             return[
+                dcc.Graph(figure=fig_fen_age_distr)
+
             ]
         elif category == "medals":
             return[
+                dcc.Graph(figure=fig_fenc_medal),
+
+                dcc.Graph(figure=fig_medal_by_type_gsb),
             ]
             
     return html.Div("No available Data yet")
@@ -302,7 +701,11 @@ def home_page():
 
        html.H2("Italy medals per year"),
        dcc.Graph(figure=fig_ita_medal_year),
-       html.P(HOME_TEXT["medals_won"],className="graph-text")
+       html.P(HOME_TEXT["medals_won"],className="graph-text"),
+
+       html.H2("Italy Medals by Sport"),
+       dcc.Graph(figure = fig_medal_sport),
+       html.P(HOME_TEXT["medals_sport"], className="graph-text")
     ])
 
 def sport_page(sport):
