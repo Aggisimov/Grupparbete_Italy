@@ -1,0 +1,74 @@
+/* ====== GLOBAL ====== */
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Helvetica", "Arial", sans-serif;
+    background-color: #f7f7f7;
+}
+
+h1,
+h2,
+h3 {
+    color: #222;
+    font-weight: 600;
+}
+
+/* ====== SIDEBAR ====== */
+
+#sidebar {
+    background-color: #ffffff;
+    border-right: 1px solid #e2e2e2;
+    height: 100vh;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-title {
+    font-size: 26px;
+    margin-bottom: 10px;
+    color: #003366;
+}
+
+/* ====== BUTTONS ====== */
+
+.sidebar-button,
+#btn_home {
+    background-color: #0057b8;
+    /* Italian sports blue */
+    color: white;
+    border: none;
+    padding: 12px;
+    width: 100%;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.25s ease, transform 0.1s ease;
+}
+
+.sidebar-button:hover,
+#btn_home:hover {
+    background-color: #003f8a;
+    transform: translateY(-2px);
+}
+
+.sidebar-button:active,
+#btn_home:active {
+    transform: scale(0.98);
+}
+
+/* ====== PAGE CONTENT ====== */
+
+#page-content {
+    padding: 25px;
+}
+
+#page-content h1 {
+    font-size: 32px;
+    margin-bottom: 15px;
+}
+
+#page-content p {
+    font-size: 18px;
+    color: #555;
+}
