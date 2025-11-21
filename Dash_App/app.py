@@ -219,6 +219,26 @@ cycling_medal_proportion_plot = (
     .melt(id_vars="Year", var_name="Group", value_name="Medals")
 )
 
+cycling_participant_distribution = (
+    cycling_df.groupby(["Age", "NOC"])["ID"]
+    .nunique()
+    .unstack(fill_value=0)
+    .reset_index()
+)
+
+cycling_participant_distribution["Not_Italy"] = (
+    cycling_participant_distribution.drop(columns=["Age", "ITA"], errors="ignore")
+    .sum(axis=1)
+)
+cycling_participant_distribution = cycling_participant_distribution[["Age", "ITA", "Not_Italy"]].fillna(0)
+
+participant_distribution_melted = cycling_participant_distribution.melt(
+    id_vars="Age",
+    value_vars=["Not_Italy", "ITA"],
+    var_name="Group",
+    value_name="Count"
+)
+
 
         #____________________Equestrianism_____________________
 
@@ -490,6 +510,23 @@ cycling_proportion_medal_fig.update_layout(
     if trace.name == "not_italy" else trace.update(name="Italy")
 )
 
+#Cycling Age Distribution
+cycling_participant_age_distribution_fig = px.bar(
+    participant_distribution_melted,
+    x="Age",
+    y="Count",
+    color="Group",
+    title="Cyclist distribution by age",
+    labels={"Age": "Athlete age", "Count": "Number of participants"},
+    color_discrete_map={"ITA": "salmon", "Not_Italy": "blue"},
+    barmode="stack"
+)
+
+cycling_participant_age_distribution_fig.update_layout(legend_title_text="Participants by").for_each_trace(
+    lambda trace: trace.update(name="Not Italy")
+    if trace.name == "Not_Italy" else trace.update(name="Italy")
+)
+
 #_____________ EQUESTRIANISM __________________
 #Medal distribution_country
 fig_eq_NOC_medal_distribution = px.bar(
@@ -639,8 +676,12 @@ def get_sport_graphs(sport, category):
     elif sport == "Cycling":
         if category == "age":
             return[
+
+                dcc.Graph(figure=cycling_participant_age_distribution_fig),
+                
                 dcc.Graph(figure=cycling_medal_distribution_fig),
                 html.P(CYCLING_TEXT["medals_age"],className="graph-text")
+
             ]
         elif category == "medals":
             return[
