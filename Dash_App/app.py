@@ -4,6 +4,7 @@ import plotly.express as px
 import pandas as pd
 import hashlib
 
+
 #____________________ VAR & CONST ____________________
 
 data = "athlete_events.csv"
@@ -25,6 +26,18 @@ SPORT_OPTIONS = {
         {"label":"Ålder", "value":"age"},
         {"label":"Medaljer", "value": "medals"},
     ]
+}
+#_________________ TEXT BLOCKS __________________
+HOME_TEXT = {
+    "medals_won": "Here we can see the medals won by Italy on Summer and Winter OS",
+    "medals_distribution": "The total medals won by the top 20 countries. Italy is the 6th top medalist."
+}
+SWIMMING_TEXT = {
+    "age_main": "This graph shows the range of ages of Italian swimmers",
+    "age_medals": "This graph shows the ages of Italian medalist swimmers",
+    "age_compare": "This graph displays the age distribution of all Italian athletes. Swimmers Highlighted",
+    "medals_year": "Here we can see the medals won by Italy in swimming on each Olympic year",
+    "medals_types": "This graph shows what medals were won each year"
 }
 
 #____________________ DATA ______________________
@@ -64,7 +77,62 @@ df_anon = df.drop(["Name"], axis=1)
 #DF with all ages/sports
 ita_all_age = italydf_anon[italydf_anon["Age"] > 0][["Sport", "Age"]]
 #Unique sports - Age
-unique_sports = ita_all_age["Sport"].unique()
+unique_sports_age = ita_all_age["Sport"].unique()
+
+#All medals
+global_medals = df_anon.dropna(subset=["Medal"]).groupby("NOC")["Medal"].count()
+top20_global = global_medals.sort_values(ascending=False).head(20).reset_index()
+top20_global["Color"] = top20_global["NOC"].apply(
+    lambda x: "red" if x == "ITA" else "gray"
+)
+
+#Athletes gender/year
+gender_year = italydf_anon.groupby(["Year", "Sex"]).size().reset_index(name="Count")
+
+#Italy unique medals
+ita_medals_unique = (
+    italydf_anon[italydf_anon["Medal"] != "None"]
+    .drop_duplicates(subset=["Games", "Event", "Medal"])
+)
+
+#Italy Summer Medals
+ita_summer_unique = (
+    italydf_anon[
+        (italydf_anon["Medal"] != "None") &
+        (italydf_anon["Season"] == "Summer")
+    ]
+    .drop_duplicates(subset=["Games", "Event", "Medal"])
+)
+ita_summer_unique["Year"] = ita_summer_unique["Games"].str[:4].astype(int)
+
+summer = (
+    ita_summer_unique
+    .groupby("Year")["Medal"]
+    .count()
+    .reset_index()
+)
+summer["Season"] = "Sommar"
+
+#Italy Winter Medals
+ita_winter_unique = (
+    italydf_anon[
+        (italydf_anon["Medal"] != "None") &
+        (italydf_anon["Season"] == "Winter")
+    ]
+    .drop_duplicates(subset=["Games", "Event", "Medal"])
+)
+ita_winter_unique["Year"] = ita_winter_unique["Games"].str[:4].astype(int)
+
+winter = (
+    ita_winter_unique
+    .groupby("Year")["Medal"]
+    .count()
+    .reset_index()
+)
+winter["Season"] = "Vinter"
+
+ita_medals_combined = pd.concat([summer, winter], ignore_index=True)
+
         #______________________Cycling_________________________
 
         #____________________Equestrianism_____________________
@@ -93,6 +161,38 @@ ita_swim_medal_type = ita_swim_medals.groupby(["Year","Medal"]).size().reset_ind
 app = Dash(__name__, external_stylesheets=[dbc.themes.COSMO], suppress_callback_exceptions= True )
 
 #____________________ Grafer ____________________________
+#___________________ Italy ________________________
+#______________ Italy medals compared to world __________
+fig_global_medals = px.bar(
+    top20_global,
+    x = "NOC",
+    y= "Medal",
+    title= "Global top 20 medalist countries",
+    color= "Color",
+    color_discrete_map={"red":"red", "gray":"gray"},
+    )
+fig_global_medals.update_layout(
+    xaxis_title="Country",
+    yaxis_title="Medals",
+    showlegend = False,
+    xaxis={'categoryorder':'array', 'categoryarray':top20_global["NOC"]}
+)
+#_____________Italy Medals per Year _________
+
+fig_ita_medal_year = px.line(
+    ita_medals_combined,
+    x="Year",
+    y="Medal",
+    color="Season",
+    markers=True,
+    title="Medaljer per år - Italien (Sommar och vinter)"
+)
+
+fig_ita_medal_year.update_layout(
+    legend_title_text="Säsong",
+    yaxis_title="Antal medaljer"
+)
+
 #   ________________ Swim Medals/Year ________________
 
 fig_swim_med_year = px.line(
@@ -101,6 +201,7 @@ fig_swim_med_year = px.line(
     y= "Medal",
     title="Antal Medaljer för Italien per OS",
     markers = True,
+    
     )
 
 fig_swim_med_year.update_layout(
@@ -129,7 +230,7 @@ fig_swim_med_type.update_layout(
 #________________ Swim Age Distr vs Other Sports Italy ______________
 
 
-color_map = {sport: "gray" for sport in unique_sports}
+color_map = {sport: "gray" for sport in unique_sports_age}
 color_map["Swimming"] = "blue"
 
 fig_age_all_sports = px.box(
@@ -153,12 +254,16 @@ def get_sport_graphs(sport, category):
     if sport == "Swimming":
         if category == "age":
             return[
-                dcc.Graph(figure=fig_age_all_sports)
+                dcc.Graph(figure=fig_age_all_sports),
+                html.P(SWIMMING_TEXT["age_main"], className="graph-text"),
             ]
         elif category == "medals":
             return[
                 dcc.Graph(figure=fig_swim_med_year),
-                dcc.Graph(figure=fig_swim_med_type)
+                html.P(SWIMMING_TEXT["medals_year"], className= "graph-text"),
+
+                dcc.Graph(figure=fig_swim_med_type),
+                html.P(SWIMMING_TEXT["medals_types"], className="graph-text")
             ]
     elif sport == "Cycling":
         if category == "age":
@@ -189,8 +294,15 @@ def get_sport_graphs(sport, category):
 def home_page():
     return html.Div([
         html.H1("Italy Olympic Dashboard — Overview"),
-        html.P("General Olympic statistics about Italy will appear here."),
-       
+        
+        html.H2("Global Medal Ranking . Top 20"),
+        dcc.Graph(figure=fig_global_medals),
+        html.P(HOME_TEXT["medals_distribution"],className="graph_text"),
+
+
+       html.H2("Italy medals per year"),
+       dcc.Graph(figure=fig_ita_medal_year),
+       html.P(HOME_TEXT["medals_won"],className="graph-text")
     ])
 
 def sport_page(sport):
