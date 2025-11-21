@@ -172,7 +172,7 @@ unique_cycling_events = cycling_df["Base Event"].unique()
 men_event_amount = (cycling_df[cycling_df["Sex"] == "M"].groupby("Base Event")["Year"].nunique())
 sorted_base_events = sorted(unique_cycling_events, key=lambda x: men_event_amount.get(x, 0), reverse=True)
 
-cycling_df["Grouped Event"] = cycling_df.apply(lambda cycling_heatmap_row: f"{"Men" if cycling_heatmap_row["Sex"] == "M" else "Women"} {cycling_heatmap_row["Base Event"]}", axis=1)
+cycling_df["Grouped Event"] = cycling_df.apply(lambda cycling_heatmap_row: f"{'Men' if cycling_heatmap_row['Sex'] == 'M' else 'Women'} {cycling_heatmap_row['Base Event']}", axis=1)
 
 cycling_heatmap_data = cycling_df.groupby(["Grouped Event", "Year"])["ID"].count().reset_index()
 cycling_heatmap_data["Base Event"] = cycling_heatmap_data["Grouped Event"].apply(lambda x: x.split(" ", 1)[1])
