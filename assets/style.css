@@ -4,7 +4,7 @@ body {
     margin: 0;
     padding: 0;
     font-family: "Helvetica", "Arial", sans-serif;
-    background-color: #f7f7f7;
+
 }
 
 h1,
@@ -14,48 +14,52 @@ h3 {
     font-weight: 600;
 }
 
+
 /* ====== SIDEBAR ====== */
+.home-button {
+    background-image: linear-gradient(to right,
+            #06a51e6a,
+            #f1f1f1d3,
+            #ef020278) !important;
+    border-radius: 1px !important;
+    color: rgb(28, 27, 27) !important;
+}
 
+/* Sidebar styling */
 #sidebar {
-    background-color: #ffffff;
-    border-right: 1px solid #e2e2e2;
+    background: linear-gradient(to bottom,
+            rgba(0, 146, 70, 0.25),
+            rgba(255, 255, 255, 0.25),
+            rgba(206, 43, 55, 0.25));
+    backdrop-filter: blur(5px);
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    width: "10%";
+    margin-left: "16%";
     height: 100vh;
-    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
+    box-shadow: 2px 0px 5px rgba(0, 0, 0, 0.05);
 }
 
-.sidebar-title {
-    font-size: 26px;
-    margin-bottom: 10px;
-    color: #003366;
+
+/* Sidebar buttons hover */
+#sidebar .btn {
+    background-color: #54acf9;
+    color: rgb(0, 0, 0);
+    border: 3px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 2px 0px 5px rgba(0, 0, 0, 0.05);
+    font-weight: 600;
 }
 
-/* ====== BUTTONS ====== */
-
-.sidebar-button,
-#btn_home {
-    background-color: #0057b8;
-    /* Italian sports blue */
-    color: white;
-    border: none;
-    padding: 12px;
-    width: 100%;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.25s ease, transform 0.1s ease;
+#sidebar .btn {
+    transition: all 0.3s ease;
+    border-radius: 20px;
 }
 
-.sidebar-button:hover,
-#btn_home:hover {
-    background-color: #003f8a;
-    transform: translateY(-2px);
+#sidebar .btn:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.sidebar-button:active,
-#btn_home:active {
-    transform: scale(0.98);
-}
 
 /* ====== PAGE CONTENT ====== */
 
@@ -71,4 +75,57 @@ h3 {
 #page-content p {
     font-size: 18px;
     color: #555;
+}
+
+/* ================= NAVBAR ============== */
+.navbar,
+.navbar-fixed-top,
+.dash-bootstrap {
+    z-index: 2000 !important;
+}
+
+
+/*============= CARDS STYLING ===============*/
+
+/* Global card styling */
+.card,
+.graph-card,
+.dash-card {
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+/* Graphs inside cards shouldn’t touch the edges */
+.card dcc-graph,
+.graph-card dcc-graph {
+    padding: 10px;
+}
+
+/* ================= GLOBAL BACKGROUND + LAYOUT ================ */
+
+body {
+    background: linear-gradient(135deg, #f7f9fc, #e8eef5);
+    font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Main content area */
+#page-content {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    margin-right: 3%;
+    min-height: 90vh;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Headings cleaner */
+h1,
+h2,
+h3,
+h4 {
+    font-weight: 600;
+    color: #1a1a1a;
 }

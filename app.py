@@ -355,7 +355,8 @@ ita_swim_medals_year = ita_swim_medals.groupby("Year")["Medal"].count().reset_in
 #Swimming Medaljer typ / År
 ita_swim_medal_type = ita_swim_medals.groupby(["Year","Medal"]).size().reset_index(name="Count")
 
-
+#Swimming age ita
+ita_swim_age = ita_swim[ita_swim["Age"]>0]
 #=============================== APP DEC ==========================================
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.COSMO], suppress_callback_exceptions= True )
@@ -696,17 +697,47 @@ fig_age_all_sports.update_layout(
     showlegend=False  # legend not needed, too many categories
 )
 
+#Swim age italian swimmers
+fig_ita_swim_age = px.histogram(
+    ita_swim_age,
+    x = "Age",
+    nbins=20,
+    title="Ålderfördelning för italienska simmare"
+)
+fig_ita_swim_age.update_layout(
+    xaxis_title="Simmarens Åldern",
+    yaxis_title= "Antal Atleter"
+)
 
+fig_swim_med_age = px.density_heatmap(
+    ita_swim_medals,
+    x = "Year",
+    y = "Age",
+    title="Medaljvinnande Simmare: Ålder och År (Densitet)",
+    nbinsx=len(ita_swim_medals['Year']),
+    nbinsy=20,
+    color_continuous_scale="plasma"
+)
+fig_swim_med_age.update_layout(
+    xaxis_title="OS År",
+    yaxis_title="Ålder",
+)
 #=============================== GRAPH CALLER ======================================
 #This function will show the right graphs based on sport/category chosen 
 
 
 def get_sport_graphs(sport, category):
+
     if sport == "Swimming":
         if category == "age":
             return[
+
+                dcc.Graph(figure=fig_ita_swim_age),
+
                 dcc.Graph(figure=fig_age_all_sports),
                 html.P(SWIMMING_TEXT["age_main"], className="graph-text"),
+
+                dcc.Graph(figure= fig_swim_med_age)
             ]
         elif category == "medals":
             return[
@@ -778,25 +809,25 @@ def get_sport_graphs(sport, category):
 
 def home_page():
     return html.Div([
-        html.H1("Italy Olympic Dashboard — Overview"),
+        html.H1("A General Overview"),
         
-        html.H2("Global Medal Ranking . Top 20"),
+        html.H4("Global Medal Ranking . Top 20"),
         dcc.Graph(figure=fig_global_medals),
         html.P(HOME_TEXT["medals_distribution"],className="graph_text"),
 
 
-       html.H2("Italy medals per year"),
+       html.H4("Italy medals per year"),
        dcc.Graph(figure=fig_ita_medal_year),
        html.P(HOME_TEXT["medals_won"],className="graph-text"),
 
-       html.H2("Italy Medals by Sport"),
+       html.H4("Italy Medals by Sport"),
        dcc.Graph(figure = fig_medal_sport),
        html.P(HOME_TEXT["medals_sport"], className="graph-text")
     ])
 
 def sport_page(sport):
     return html.Div([
-        html.H1(f"{sport} OS Analysis",style={"text-align":"center"}),
+        html.H4(f"{sport} OS Analysis",style={"text-align":"center"}),
 
         #dynamisk Dropdown
         html.Div([
@@ -818,25 +849,48 @@ def sport_page(sport):
 #==================================== APP ================================
 
 app.layout = html.Div([
-    
-    #Sidebar structure
+
+    # ===================== HEADER =====================
+    dbc.Navbar(
+        [
+            dbc.NavbarBrand(
+                [
+                    html.Span("🇮🇹 ", style={"font-size": "30px"}),
+                    "Italy Olympic Dashboard"
+                ],
+                style={"font-size": "26px", "font-weight": "bold"}
+            )
+        ],
+        color="white",
+        dark=False,
+        className="shadow-sm border-bottom mb-4",
+        style={
+            "padding": "15px 30px",
+            "position": "fixed",
+            "top": 0,
+            "left": "15%",
+            "right": 0,
+            "z-index": 1000
+        }
+    ),
+
+# ===================== SIDEBAR =====================
     html.Div(
-        id = "sidebar",
+        id="sidebar",
         children=[
-            html.H1("Italy Olympic Dashboard", className="sidebar-title"),
+            html.H1("Menu", className="sidebar-title"),
             html.P("Select a Sport"),
-            
-            #create buttons
-                #Home button
+
+            # Home button
             dbc.Button(
-                "Home",
+                "ITALY",
                 id="btn_home",
                 n_clicks=0,
-                color="primary",
-                className="mb-2 w-100"
+                #color="primary",
+                className="home-button mb-2 w-100"
             ),
 
-                #Sports buttons
+            # Sports buttons
             html.Div([
                 dbc.Button(
                     sport,
@@ -848,9 +902,10 @@ app.layout = html.Div([
                 for sport in SPORTS
             ])
         ],
-        style = {
-            "width": "20%",
+        style={
+            "width": "15%",
             "background-color": "#f4f4f4",
+            "margin-right":"35%",
             "padding": "20px",
             "height": "100vh",
             "position": "fixed",
@@ -858,22 +913,23 @@ app.layout = html.Div([
             "right": 0
         }
     ),
+
     dcc.Store(id="current-sport"),
 
-#================================ MAIN CONTENT ====================================
-
+    # ===================== MAIN CONTENT =====================
     html.Div(
         id="page-content",
         children=[
             html.H1("Välkomna till Italiens OS Dashboard!")
         ],
         style={
-            "margin-left": "22%",
-            "padding":"20px"
+            "margin-left": "18%",
+            "padding": "90px 20px 20px 20px" 
         }
     )
 
 ])
+
 
 
 
