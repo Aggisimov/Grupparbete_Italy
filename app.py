@@ -886,7 +886,7 @@ app.layout = html.Div([
                 "ITALY",
                 id="btn_home",
                 n_clicks=0,
-                #color="primary",
+                color="primary",
                 className="home-button mb-2 w-100"
             ),
 
