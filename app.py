@@ -11,18 +11,18 @@ data = "athlete_events.csv"
 SPORTS = ["Cycling","Equestrianism","Fencing", "Swimming"]
 SPORT_OPTIONS = {
     "Cycling":[
+        {"label": "General", "value": "general"},
         {"label":"Ålder", "value":"age"},
-        {"label":"Medaljer", "value": "medals"},
-        {"label": "General", "value": "general"}
+        {"label":"Medaljer", "value": "medals"}
     ],
     "Fencing":[
         {"label":"Ålder", "value":"age"},
         {"label":"Medaljer", "value": "medals"},
     ],
     "Equestrianism":[
-        {"label":"Ålder", "value":"age"},
         {"label":"Medaljer", "value": "medals"},
         {"label":"Kön", "value":"gender"},
+        {"label":"Ålder", "value":"age"},
         {"label":"Aktiva År", "value": "aktiva"}
     ],
     "Swimming":[
