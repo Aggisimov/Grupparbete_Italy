@@ -393,10 +393,6 @@ ita_swim_medal_type = ita_swim_medals.groupby(["Year","Medal"]).size().reset_ind
 
 #Swimming age ita
 ita_swim_age = ita_swim[ita_swim["Age"]>0]
-#=============================== APP DEC ==========================================
-
-app = Dash(__name__, external_stylesheets=[dbc.themes.COSMO], suppress_callback_exceptions= True )
-
 
 #===================================== GRAFER =====================================
 
@@ -522,7 +518,7 @@ cycling_heatmap_fig = px.density_heatmap(
     x="Year",
     y="Grouped Event",
     z="ID",
-    nbinsx=int((cycling_df["Year"].max()-cycling_df["Year"].min()+4)/4),
+    nbinsx=int((cycling_df["Year"].max()-cycling_df["Year"].min()+4)/2),
     color_continuous_scale=cycling_color_scale,
     title="Cycling through the Olympics",
     labels={"ID": "Number of Participants"},
@@ -778,6 +774,12 @@ fig_swim_med_age.update_layout(
     yaxis_title="Ålder",
 )
 
+
+#=============================== APP DEC ==========================================
+
+app = Dash(__name__, external_stylesheets=[dbc.themes.COSMO], suppress_callback_exceptions= True )
+
+
 #=============================== GRAPH CALLER ======================================
 #This function will show the right graphs based on sport/category chosen 
 
@@ -1006,7 +1008,7 @@ app.layout = html.Div([
     html.Div(
         id="page-content",
         children=[
-            html.H1("Välkomna till Italiens OS Dashboard!")
+
         ],
         style={
             "margin-left": "18%",
@@ -1061,6 +1063,18 @@ def store_sport(*clicks):
     sport = button_id.replace("btn-","").capitalize()
     return sport
 
+#This makes sure the right graphs are called on the page when a category is selected
+@app.callback(
+    Output("sports-graphs-area","children"),
+    Input("dropdown-sport-option", "value"),
+    State("current-sport","data")
+)
+def update_graphs(category,sport):
+    if sport is None or category is None:
+        return []
+    return get_sport_graphs(sport, category)
+
+
 #Callback for interactive medals graph
 @app.callback(
     Output("sport-medals-over-time", "figure"),
@@ -1092,19 +1106,6 @@ def update_sport_timeseries(selected_sports):
     )
 
     return fig
-
-
-#This makes sure the right graphs are called on the page when a category is selected
-@app.callback(
-    Output("sports-graphs-area","children"),
-    Input("dropdown-sport-option", "value"),
-    State("current-sport","data")
-)
-def update_graphs(category,sport):
-    if sport is None or category is None:
-        return []
-    return get_sport_graphs(sport, category)
-
 
 if __name__ == "__main__":
     app.run(debug = True)
