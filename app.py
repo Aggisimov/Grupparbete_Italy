@@ -104,6 +104,15 @@ ita_medals_unique = (
     .drop_duplicates(subset=["Games", "Event", "Medal"])
 )
 
+#Italy Unique medals/Year
+ita_sport_year = (
+    italydf_anon.dropna(subset=["Medal"])
+    .drop_duplicates(subset=["Games", "Event", "Medal"])
+    .groupby(["Year","Sport"],as_index=False)
+    .size()
+    .rename(columns={"size":"Medals"})
+                   )
+
 #Italy medals by sport
 medals_by_sport_all = (
     ita_medals_unique
@@ -149,6 +158,23 @@ winter = (
 winter["Season"] = "Vinter"
 
 ita_medals_combined = pd.concat([summer, winter], ignore_index=True)
+
+#Participation by gender/season
+ita_unique_df = (
+    italydf_anon
+    .drop_duplicates(subset=["Games", "ID"])
+    .copy()
+)
+
+ita_unique_df["Year"] = ita_unique_df["Games"].str[:4].astype(int)
+
+ita_participants_df = (
+    ita_unique_df.groupby(["Year", "Season", "Sex"])["ID"]
+      .count()
+      .reset_index(name="Participants")
+)
+
+ita_participants_df = ita_participants_df.sort_values(["Year", "Season", "Sex"])
 
 #______________________Cycling_________________________
 
@@ -409,6 +435,24 @@ fig_medal_sport = px.bar(
 fig_medal_sport.update_layout(
        showlegend = False
 )
+
+#Italy participants/season/sex
+fig_ita_participants = px.line(
+    ita_participants_df,
+    x="Year",
+    y="Participants",
+    color="Sex",
+    line_dash="Season",
+    markers=True,
+    title="Antal deltagare per år - Italien (Sommar/Vinter & kön)",
+    labels={
+        "Participants": "Antal deltagare",
+        "Season": "Säsong",
+        "Sex": "Kön",
+    }
+)
+
+
 # __________________ FENCING _______________________
 
 
@@ -637,6 +681,7 @@ fig_eq_medals_type.update_layout(
         xaxis_title = "Year",
         yaxis_title = "Number of Medals"
 )
+
 # _________________________________ SWIMMING ___________________________________
 
 
@@ -722,6 +767,7 @@ fig_swim_med_age.update_layout(
     xaxis_title="OS År",
     yaxis_title="Ålder",
 )
+
 #=============================== GRAPH CALLER ======================================
 #This function will show the right graphs based on sport/category chosen 
 
@@ -816,13 +862,43 @@ def home_page():
         html.P(HOME_TEXT["medals_distribution"],className="graph_text"),
 
 
-       html.H4("Italy medals per year"),
-       dcc.Graph(figure=fig_ita_medal_year),
-       html.P(HOME_TEXT["medals_won"],className="graph-text"),
+        html.H4("Italy medals per year"),
+        dcc.Graph(figure=fig_ita_medal_year),
+        html.P(HOME_TEXT["medals_won"],className="graph-text"),
 
-       html.H4("Italy Medals by Sport"),
-       dcc.Graph(figure = fig_medal_sport),
-       html.P(HOME_TEXT["medals_sport"], className="graph-text")
+        html.H4("Italy Medals by Sport"),
+        dcc.Graph(figure = fig_medal_sport),
+        html.P(HOME_TEXT["medals_sport"], className="graph-text"),
+
+       #_______________ Medals / Years series _________________
+        html.H4("Medals Over Time by Sport"),
+
+        dcc.Graph(id="sport-medals-over-time"),
+
+        html.Div([
+            dcc.Checklist(
+                id="sport-selector",
+                options=[
+                    {"label": s, "value": s} 
+                    for s in sorted(ita_sport_year["Sport"].unique())
+                ],
+                value=("Cycling","Fencing","Equestrianism","Swimming"),   # preselected sports (optional)
+                className="sport-checklist"
+            )
+        ], style={
+            "maxHeight": "200px",
+            "overflowY": "scroll",
+            "border": "1px solid #ccc",
+            "padding": "10px",
+            "borderRadius": "8px",
+            "backgroundColor": "white",
+            "marginBottom": "20px"
+            }),
+        
+        #Participants per year / gender
+
+        html.H3("Participation over the years per gender"),
+        dcc.Graph(figure=fig_ita_participants)
     ])
 
 def sport_page(sport):
@@ -874,7 +950,7 @@ app.layout = html.Div([
         }
     ),
 
-# ===================== SIDEBAR =====================
+    # ===================== SIDEBAR =====================
     html.Div(
         id="sidebar",
         children=[
@@ -916,7 +992,7 @@ app.layout = html.Div([
 
     dcc.Store(id="current-sport"),
 
-    # ===================== MAIN CONTENT =====================
+# ===================== MAIN CONTENT =====================
     html.Div(
         id="page-content",
         children=[
@@ -931,7 +1007,7 @@ app.layout = html.Div([
 ])
 
 
-
+#================== CALLBACKS ========================
 
 @app.callback(
     Output("page-content", "children"),
@@ -974,6 +1050,38 @@ def store_sport(*clicks):
     
     sport = button_id.replace("btn-","").capitalize()
     return sport
+
+#Callback for interactive medals graph
+@app.callback(
+    Output("sport-medals-over-time", "figure"),
+    Input("sport-selector", "value")
+)
+def update_sport_timeseries(selected_sports):
+
+    if not selected_sports:
+        return px.line(title="Select at least one sport")
+
+    filtered = ita_sport_year[ita_sport_year["Sport"].isin(selected_sports)]
+
+    fig = px.line(
+        filtered,
+        x="Year",
+        y="Medals",
+        color="Sport",
+        markers=True
+    )
+
+    fig.update_layout(
+        title="Italy’s Medals Over Time by Sport",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis_title="Year",
+        yaxis_title="Number of Medals",
+        margin=dict(l=20, r=20, t=50, b=20)
+    )
+
+    return fig
+
 
 #This makes sure the right graphs are called on the page when a category is selected
 @app.callback(
