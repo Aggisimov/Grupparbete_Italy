@@ -104,6 +104,15 @@ ita_medals_unique = (
     .drop_duplicates(subset=["Games", "Event", "Medal"])
 )
 
+#All sports per medals (used for color mapping the dynamic graph)
+ita_all_sports = sorted(ita_medals_unique["Sport"].unique())
+palette = px.colors.qualitative.Alphabet
+sport_color_map = {
+    sport : palette[i % len(palette)]
+    for i, sport in enumerate(ita_all_sports)
+}
+
+
 #Italy Unique medals/Year
 ita_sport_year = (
     italydf_anon.dropna(subset=["Medal"])
@@ -159,7 +168,8 @@ winter["Season"] = "Vinter"
 
 ita_medals_combined = pd.concat([summer, winter], ignore_index=True)
 
-#Participation by gender/season
+#Participation by gender/season - DF progression:
+
 ita_unique_df = (
     italydf_anon
     .drop_duplicates(subset=["Games", "ID"])
@@ -882,7 +892,7 @@ def home_page():
                     {"label": s, "value": s} 
                     for s in sorted(ita_sport_year["Sport"].unique())
                 ],
-                value=("Cycling","Fencing","Equestrianism","Swimming"),   # preselected sports (optional)
+                value=("Cycling","Fencing","Equestrianism"),
                 className="sport-checklist"
             )
         ], style={
@@ -1068,7 +1078,8 @@ def update_sport_timeseries(selected_sports):
         x="Year",
         y="Medals",
         color="Sport",
-        markers=True
+        markers=True,
+        color_discrete_map= sport_color_map
     )
 
     fig.update_layout(
