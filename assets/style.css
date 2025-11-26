@@ -1,0 +1,131 @@
+/* ====== GLOBAL ====== */
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Helvetica", "Arial", sans-serif;
+
+}
+
+h1,
+h2,
+h3 {
+    color: #222;
+    font-weight: 600;
+}
+
+
+/* ====== SIDEBAR ====== */
+.home-button {
+    background-image: linear-gradient(to right,
+            #06a51e6a,
+            #f1f1f1d3,
+            #ef020278) !important;
+    border-radius: 0.5px !important;
+    color: rgb(28, 27, 27) !important;
+}
+
+/* Sidebar styling */
+#sidebar {
+    background: linear-gradient(to bottom,
+            rgba(0, 146, 70, 0.25),
+            rgba(255, 255, 255, 0.25),
+            rgba(206, 43, 55, 0.25));
+    backdrop-filter: blur(5px);
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    width: "10%";
+    margin-left: "16%";
+    height: 100vh;
+    box-shadow: 2px 0px 5px rgba(0, 0, 0, 0.05);
+}
+
+
+/* Sidebar buttons hover */
+#sidebar .btn {
+    background-color: #54acf9;
+    color: rgb(0, 0, 0);
+    border: 3px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 2px 0px 5px rgba(0, 0, 0, 0.05);
+    font-weight: 600;
+}
+
+#sidebar .btn {
+    transition: all 0.3s ease;
+    border-radius: 20px;
+}
+
+#sidebar .btn:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+
+/* ====== PAGE CONTENT ====== */
+
+#page-content {
+    padding: 25px;
+}
+
+#page-content h1 {
+    font-size: 32px;
+    margin-bottom: 15px;
+}
+
+#page-content p {
+    font-size: 18px;
+    color: #555;
+}
+
+/* ================= NAVBAR ============== */
+.navbar,
+.navbar-fixed-top,
+.dash-bootstrap {
+    z-index: 2000 !important;
+}
+
+
+/*============= CARDS STYLING ===============*/
+
+/* Global card styling */
+.card,
+.graph-card,
+.dash-card {
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+/* Graphs inside cards shouldn’t touch the edges */
+.card dcc-graph,
+.graph-card dcc-graph {
+    padding: 10px;
+}
+
+/* ================= GLOBAL BACKGROUND + LAYOUT ================ */
+
+body {
+    background: linear-gradient(135deg, #f7f9fc, #e8eef5);
+    font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Main content area */
+#page-content {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    margin-right: 3%;
+    min-height: 90vh;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Headings cleaner */
+h1,
+h2,
+h3,
+h4 {
+    font-weight: 600;
+    color: #1a1a1a;
+}
